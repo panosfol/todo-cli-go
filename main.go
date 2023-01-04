@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-memdb"
 	"github.com/urfave/cli/v2"
 	"gitlab.com/go-classroom/todo/util"
 	"log"
 	"os"
+	"github.com/tidwall/buntdb"
 )
 
 type Entry struct {
@@ -17,40 +17,13 @@ type Entry struct {
 }
 
 func main() {
-	schema := &memdb.DBSchema{
-		Tables: map[string]*memdb.TableSchema{
-			"entry": &memdb.TableSchema{
-				Name: "entry",
-				Indexes: map[string]*memdb.IndexSchema{
-					"id": &memdb.IndexSchema{
-						Name:    "id",
-						Unique:  true,
-						Indexer: &memdb.StringFieldIndex{Field: "Title"},
-					},
-					"description": &memdb.IndexSchema{
-						Name:    "description",
-						Unique:  false,
-						Indexer: &memdb.StringFieldIndex{Field: "Description"},
-					},
-					"status": &memdb.IndexSchema{
-						Name:    "status",
-						Unique:  false,
-						Indexer: &memdb.StringFieldIndex{Field: "Status"},
-					},
-					"category": &memdb.IndexSchema{
-						Name:    "category",
-						Unique:  false,
-						Indexer: &memdb.StringFieldIndex{Field: "Category"},
-					},
-				},
-			},
-		},
-	}
-
-	db, err := memdb.NewMemDB(schema)
+	db, err := buntdb.Open("data.db")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+	db.CreateIndex("category", "*", buntdb.IndexJSON("category"))
+	db.CreateIndex("status", "*", buntdb.IndexJSON("status"))
+
 
 	app := &cli.App{
 		Commands: []*cli.Command{
@@ -67,33 +40,34 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					//Create a write transaction with DB
-					txn := db.Txn(true)
-					var new_entry Entry
+					var new_title, new_description string
 					fmt.Println("Enter the title of your entry:")
-					util.Scanner(&new_entry.Title)
+					util.Scanner(&new_title)
 					fmt.Println("Enter a description:")
-					util.Scanner(&new_entry.Description)
+					util.Scanner(&new_description)
 					//Setting the status active as a default for new entries
-					new_entry.Status = "Active"
-					new_entry.Category = cCtx.String("c")
-					if err := txn.Insert("entry", new_entry); err != nil {
-						panic(err)
-					}
-					txn.Commit()
+					//new_status = "Active"
+					//new_entry.Category = cCtx.String("c")
+					db.Update(func(tx *buntdb.Tx) error {
+						tx.Set(new_title,`{"description" : new_description, "status": "Active", "category": "cCtx.String"}`, nil)
+						return nil
+					})
+					defer db.Close()
 					return nil
 				},
 			},
 
-			// // 			{
-			// // 				Name:    "delete",
-			// // 				Aliases: []string{"d"},
-			// // 				Usage:   "delete an entry from the list",
-			// // 				Action: func(cCtx *cli.Context) error {
-			// // 					fmt.Println("delete")
-			// // 					return nil
-			// // 				},
-			// // 			},
+			// {
+			// 	Name:    "delete",
+			// 	Aliases: []string{"d"},
+			// 	Usage:   "delete an entry from the list",
+			// 	Action: func(cCtx *cli.Context) error {
+			// 		var title_del string
+			// 		fmt.Println("Enter the title of the entry to be delete:")
+			// 		util.Scanner(&title_del)
+			// 		return nil
+			// 	},
+			// },
 
 			// // 			{
 			// // 				Name:    "edit",
@@ -165,18 +139,20 @@ func main() {
 					// }
 
 					// Create read-only transaction
-					txn := db.Txn(false)
-					defer txn.Abort()
 
-					it, err := txn.Get("entry", "id")
-					if err != nil {
-						panic(err)
-					}
-					fmt.Println("All the entries:")
-					for obj := it.Next(); obj != nil; obj = it.Next() {
-						p := obj.(Entry)
-						fmt.Printf("%s\n%s\n%s\n%s\n", p.Title, p.Description, p.Status, p.Category)
-					}
+
+					// fmt.Println("All the entries:")
+					// for obj := it.Next(); obj != nil; obj = it.Next() {
+					// 	p := obj.(Entry)
+					// 	fmt.Printf("%s\n%s\n%s\n%s\n", p.Title, p.Description, p.Status, p.Category)
+					// }
+					db.View(func(tx *buntdb.Tx) error {
+						tx.Ascend("", func(key, value string) bool {
+							fmt.Printf("%s: %s\n", key, value)
+							return true
+						})
+						return nil
+					})
 					return nil
 				},
 			},
