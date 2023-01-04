@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/tidwall/buntdb"
 	"github.com/urfave/cli/v2"
 	"gitlab.com/go-classroom/todo/util"
 	"log"
 	"os"
-	"github.com/tidwall/buntdb"
 )
 
 type Entry struct {
@@ -23,7 +23,6 @@ func main() {
 	}
 	db.CreateIndex("category", "*", buntdb.IndexJSON("category"))
 	db.CreateIndex("status", "*", buntdb.IndexJSON("status"))
-
 
 	app := &cli.App{
 		Commands: []*cli.Command{
@@ -49,7 +48,7 @@ func main() {
 					//new_status = "Active"
 					//new_entry.Category = cCtx.String("c")
 					db.Update(func(tx *buntdb.Tx) error {
-						tx.Set(new_title,`{"description" : new_description, "status": "Active", "category": "cCtx.String"}`, nil)
+						tx.Set(new_title, fmt.Sprintf(`{"description" : %s, "status": "Active", "category": "%s"}`, new_description, "<edw de kserw ti theleis apo category"), nil)
 						return nil
 					})
 					defer db.Close()
@@ -139,7 +138,6 @@ func main() {
 					// }
 
 					// Create read-only transaction
-
 
 					// fmt.Println("All the entries:")
 					// for obj := it.Next(); obj != nil; obj = it.Next() {

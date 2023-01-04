@@ -1,8 +1,8 @@
 package schema
 
 type Entry struct {
-	Title string
+	Title       string
 	Description string
-	Category string
-	Status string
+	Category    string
+	Status      string
 }
