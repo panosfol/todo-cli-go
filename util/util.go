@@ -1,12 +1,12 @@
 package util
 
 import (
-	"log"
 	"bufio"
+	"log"
 	"os"
 )
 
-func Scanner (s *string) *string {
+func Scanner(s *string) *string {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	err := scanner.Err()
