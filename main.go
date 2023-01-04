@@ -45,10 +45,8 @@ func main() {
 					fmt.Println("Enter a description:")
 					util.Scanner(&new_description)
 					//Setting the status active as a default for new entries
-					//new_status = "Active"
-					//new_entry.Category = cCtx.String("c")
 					db.Update(func(tx *buntdb.Tx) error {
-						tx.Set(new_title, fmt.Sprintf(`{"description" : %s, "status": "Active", "category": "%s"}`, new_description, "<edw de kserw ti theleis apo category"), nil)
+						tx.Set(new_title, fmt.Sprintf(`{"description" : %s, "status": "Active", "category": %s}`, new_description, cCtx.String("c")), nil)
 						return nil
 					})
 					defer db.Close()
@@ -145,7 +143,7 @@ func main() {
 					// 	fmt.Printf("%s\n%s\n%s\n%s\n", p.Title, p.Description, p.Status, p.Category)
 					// }
 					db.View(func(tx *buntdb.Tx) error {
-						tx.Ascend("", func(key, value string) bool {
+						tx.Descend("category", func(key, value string) bool {
 							fmt.Printf("%s: %s\n", key, value)
 							return true
 						})
