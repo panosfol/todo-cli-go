@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/tidwall/buntdb"
 	"github.com/urfave/cli/v2"
@@ -10,7 +11,6 @@ import (
 )
 
 type Entry struct {
-	Title       string
 	Description string
 	Category    string
 	Status      string
@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.CreateIndex("category", "*", buntdb.IndexJSON("category"))
+	db.CreateIndex("categories", "*", buntdb.IndexJSON("category"))
 	db.CreateIndex("status", "*", buntdb.IndexJSON("status"))
 
 	app := &cli.App{
@@ -46,7 +46,7 @@ func main() {
 					util.Scanner(&new_description)
 					//Setting the status active as a default for new entries
 					db.Update(func(tx *buntdb.Tx) error {
-						tx.Set(new_title, fmt.Sprintf(`{"description" : %s, "status": "Active", "category": %s}`, new_description, cCtx.String("c")), nil)
+						tx.Set(new_title, fmt.Sprintf(`{"description" : "%s", "status": "Active", "category": "%s"}`, new_description, cCtx.String("c")), nil)
 						return nil
 					})
 					defer db.Close()
@@ -113,42 +113,64 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					// fmt.Println("list")
-					// switch cCtx.String("status") {
-					// case "Abandoned":
-					// 	fmt.Println("abandoned")
-					// case "Active":
-					// 	fmt.Println("active")
-					// case "Done":
-					// 	fmt.Println("done")
-					// default:
-					// 	fmt.Println("fetching all")
-					// }
-					// switch cCtx.String("category") {
-					// case "Fun":
-					// 	fmt.Println("fun")
-					// case "Personal":
-					// 	fmt.Println("personal")
-					// case "Work":
-					// 	fmt.Println("work")
-					// default:
-					// 	fmt.Println("fetching all")
-					// }
-
-					// Create read-only transaction
-
-					// fmt.Println("All the entries:")
-					// for obj := it.Next(); obj != nil; obj = it.Next() {
-					// 	p := obj.(Entry)
-					// 	fmt.Printf("%s\n%s\n%s\n%s\n", p.Title, p.Description, p.Status, p.Category)
-					// }
-					db.View(func(tx *buntdb.Tx) error {
-						tx.Descend("category", func(key, value string) bool {
-							fmt.Printf("%s: %s\n", key, value)
-							return true
+					switch cCtx.String("c") {
+					case "all":
+						db.View(func(tx *buntdb.Tx) error {
+							tx.Ascend("", func(key, value string) bool {
+								entry := Entry{}
+								if err := json.Unmarshal([]byte(value), &entry); err != nil {
+									panic(err)
+								}
+								fmt.Println(entry)
+								return true
+							})
+							return nil
 						})
-						return nil
-					})
+					case "Fun":
+						db.View(func(tx *buntdb.Tx) error {
+							tx.Ascend("", func(key, value string) bool {
+								entry := Entry{}
+								if err := json.Unmarshal([]byte(value), &entry); err != nil {
+									panic(err)
+								}
+								if entry.Category == "Fun" {
+									fmt.Println(entry)
+								}
+								return true
+							})
+							return nil
+						})
+					case "Personal":
+						db.View(func(tx *buntdb.Tx) error {
+							tx.Ascend("", func(key, value string) bool {
+								entry := Entry{}
+								if err := json.Unmarshal([]byte(value), &entry); err != nil {
+									panic(err)
+								}
+								if entry.Category == "Personal" {
+									fmt.Println(entry)
+								}
+								return true
+							})
+							return nil
+						})
+					case "Work":
+						db.View(func(tx *buntdb.Tx) error {
+							tx.Ascend("", func(key, value string) bool {
+								entry := Entry{}
+								if err := json.Unmarshal([]byte(value), &entry); err != nil {
+									panic(err)
+								}
+								if entry.Category == "Work" {
+									fmt.Println(entry)
+								}
+								return true
+							})
+							return nil
+						})
+					default:
+						panic("Please enter a correct category")
+					}
 					return nil
 				},
 			},
