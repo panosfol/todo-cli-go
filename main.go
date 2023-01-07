@@ -73,9 +73,9 @@ func main() {
 						fmt.Println("Please enter the title of the entry to be delete")
 					}
 					db.Update(func(tx *buntdb.Tx) error {
-						_, v := tx.Delete(cCtx.String("t"))
-						if v != nil {
-							fmt.Println(v)
+						_, err := tx.Delete(cCtx.String("t"))
+						if err != nil {
+							fmt.Println(err)
 						} else {
 							fmt.Printf("Entry with title \"%s\" has been succesfully deleted\n", cCtx.String("t"))
 						}
