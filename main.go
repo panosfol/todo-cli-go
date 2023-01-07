@@ -11,6 +11,7 @@ import (
 )
 
 type Entry struct {
+	Title       string
 	Description string
 	Category    string
 	Status      string
@@ -21,8 +22,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.CreateIndex("categories", "*", buntdb.IndexJSON("category"))
-	db.CreateIndex("status", "*", buntdb.IndexJSON("status"))
+	// db.CreateIndex("categories", "*", buntdb.IndexJSON("category"))
+	// db.CreateIndex("status", "*", buntdb.IndexJSON("status"))
 
 	app := &cli.App{
 		Commands: []*cli.Command{
@@ -35,7 +36,7 @@ func main() {
 						Name:    "category",
 						Aliases: []string{"c"},
 						Value:   "Other",
-						Usage:   "enter a category of the entry",
+						Usage:   "Enter a category of the entry",
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
@@ -111,65 +112,78 @@ func main() {
 						Value:   "all",
 						Usage:   "Filter the returning list through the category given",
 					},
+					&cli.StringFlag{
+						Name:    "title",
+						Aliases: []string{"t"},
+						Value:   "all",
+						Usage:   "Return information about a specific title",
+					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					switch cCtx.String("c") {
-					case "all":
-						db.View(func(tx *buntdb.Tx) error {
-							tx.Ascend("", func(key, value string) bool {
-								entry := Entry{}
-								if err := json.Unmarshal([]byte(value), &entry); err != nil {
-									panic(err)
-								}
-								fmt.Println(entry)
-								return true
-							})
-							return nil
+					entries := []Entry{}
+					db.View(func(tx *buntdb.Tx) error {
+						fetched_entry := Entry{}
+						tx.Ascend("", func(key, value string) bool {
+							if err := json.Unmarshal([]byte(value), &fetched_entry); err != nil {
+								panic(err)
+							}
+							fetched_entry.Title = key
+							entries = append(entries, fetched_entry)
+							return true
 						})
-					case "Fun":
-						db.View(func(tx *buntdb.Tx) error {
-							tx.Ascend("", func(key, value string) bool {
-								entry := Entry{}
-								if err := json.Unmarshal([]byte(value), &entry); err != nil {
-									panic(err)
+						return nil
+					})
+					//Checking if the user used a title flag
+					if cCtx.String("t") == "all" {
+						//Using 2 new variables to potentially filter twice through the list of entries, once for category flag and once for status flag
+						entries1 := []Entry{}
+						entries2 := []Entry{}
+						//Checking if the user put the correct input
+						if cCtx.String("c") != "Fun" && cCtx.String("c") != "Work" && cCtx.String("c") != "all" && cCtx.String("c") != "Personal" {
+							panic("Wrong category parameter given")
+						}
+						if cCtx.String("s") != "Active" && cCtx.String("s") != "Done" && cCtx.String("s") != "all" && cCtx.String("s") != "Abandoned" {
+							panic("Wrong status parameter given")
+						}
+						//Filtering through all the entries using the category flag
+						if cCtx.String("c") == "Fun" || cCtx.String("c") == "Personal" || cCtx.String("c") == "Work" {
+							for _, v := range entries {
+								if v.Category == cCtx.String("c") {
+									entries1 = append(entries1, v)
 								}
-								if entry.Category == "Fun" {
-									fmt.Println(entry)
+							}
+						} else {
+							//If no category flag was provided then the list remains the same
+							entries1 = entries
+
+						}
+						//Filtering through all the entries using the status flag
+						if cCtx.String("s") == "Abandoned" || cCtx.String("s") == "Done" || cCtx.String("s") == "Active" {
+							for _, v := range entries1 {
+								if v.Status == cCtx.String("s") {
+									entries2 = append(entries2, v)
 								}
-								return true
-							})
-							return nil
-						})
-					case "Personal":
-						db.View(func(tx *buntdb.Tx) error {
-							tx.Ascend("", func(key, value string) bool {
-								entry := Entry{}
-								if err := json.Unmarshal([]byte(value), &entry); err != nil {
-									panic(err)
-								}
-								if entry.Category == "Personal" {
-									fmt.Println(entry)
-								}
-								return true
-							})
-							return nil
-						})
-					case "Work":
-						db.View(func(tx *buntdb.Tx) error {
-							tx.Ascend("", func(key, value string) bool {
-								entry := Entry{}
-								if err := json.Unmarshal([]byte(value), &entry); err != nil {
-									panic(err)
-								}
-								if entry.Category == "Work" {
-									fmt.Println(entry)
-								}
-								return true
-							})
-							return nil
-						})
-					default:
-						panic("Please enter a correct category")
+							}
+						} else {
+							entries2 = entries1
+						}
+						fmt.Printf("Here is a list of your entries: \n")
+						for _, v := range entries2 {
+							fmt.Println(v.Title)
+						}
+
+					} else {
+						title_found := false
+						for _, v := range entries {
+							if cCtx.String("t") == v.Title {
+								title_found = true
+								fmt.Printf("Title: %s\nDescription: %s\nCategory: %s\nStatus: %s\n", v.Title, v.Description, v.Category, v.Status)
+								break
+							}
+						}
+						if title_found == false {
+							fmt.Println("Title was not found")
+						}
 					}
 					return nil
 				},
