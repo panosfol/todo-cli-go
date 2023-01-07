@@ -56,17 +56,34 @@ func main() {
 				},
 			},
 
-			// {
-			// 	Name:    "delete",
-			// 	Aliases: []string{"d"},
-			// 	Usage:   "delete an entry from the list",
-			// 	Action: func(cCtx *cli.Context) error {
-			// 		var title_del string
-			// 		fmt.Println("Enter the title of the entry to be delete:")
-			// 		util.Scanner(&title_del)
-			// 		return nil
-			// 	},
-			// },
+			{
+				Name:    "delete",
+				Aliases: []string{"d"},
+				Usage:   "delete an entry from the list",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "title",
+						Aliases: []string{"t"},
+						Value:   "",
+						Usage:   "Enter the title of the entry to be delete",
+					},
+				},
+				Action: func(cCtx *cli.Context) error {
+					if cCtx.String("t") == "" {
+						fmt.Println("Please enter the title of the entry to be delete")
+					}
+					db.Update(func(tx *buntdb.Tx) error {
+						_, v := tx.Delete(cCtx.String("t"))
+						if v != nil {
+							fmt.Println(v)
+						} else {
+							fmt.Printf("Entry with title \"%s\" has been succesfully deleted\n", cCtx.String("t"))
+						}
+						return nil
+					})
+					return nil
+				},
+			},
 
 			// // 			{
 			// // 				Name:    "edit",
