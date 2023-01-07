@@ -22,8 +22,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// db.CreateIndex("categories", "*", buntdb.IndexJSON("category"))
-	// db.CreateIndex("status", "*", buntdb.IndexJSON("status"))
 
 	app := &cli.App{
 		Commands: []*cli.Command{
@@ -36,10 +34,13 @@ func main() {
 						Name:    "category",
 						Aliases: []string{"c"},
 						Value:   "Other",
-						Usage:   "Enter a category of the entry",
+						Usage:   "Enter a category of the entry: Fun, Work or Personal",
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
+					if cCtx.String("c") != "Fun" && cCtx.String("c") != "Personal" && cCtx.String("c") != "Work" && cCtx.String("c") != "Other" {
+						panic("Please enter a correct category for the entry")
+					}
 					var new_title, new_description string
 					fmt.Println("Enter the title of your entry:")
 					util.Scanner(&new_title)
