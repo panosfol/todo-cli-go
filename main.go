@@ -8,9 +8,11 @@ import (
 	"gitlab.com/go-classroom/todo/util"
 	"log"
 	"os"
+	"strconv"
 )
 
 type Entry struct {
+	Id          string
 	Title       string
 	Description string
 	Category    string
@@ -28,7 +30,7 @@ func main() {
 			{
 				Name:    "new",
 				Aliases: []string{"n"},
-				Usage:   "add a new entry to the list",
+				Usage:   "Add a new entry to the list",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "category",
@@ -41,14 +43,40 @@ func main() {
 					if cCtx.String("c") != "Fun" && cCtx.String("c") != "Personal" && cCtx.String("c") != "Work" && cCtx.String("c") != "Other" {
 						panic("Please enter a correct category for the entry")
 					}
+					//Using custom made key that auto increments according to the key of the last entry
+					new_key := 0
+					var titles []string
+					db.View(func(tx *buntdb.Tx) error {
+						fetched_entry := Entry{}
+						tx.Ascend("", func(key, value string) bool {
+							if err := json.Unmarshal([]byte(value), &fetched_entry); err != nil {
+								panic(err)
+							}
+							titles = append(titles, fetched_entry.Title)
+							new_key, _ = strconv.Atoi(key)
+							return true
+						})
+						return nil
+					})
+					//If not incremented it will be the same on as the one of the last entry
+					new_key++
 					var new_title, new_description string
 					fmt.Println("Enter the title of your entry:")
 					util.Scanner(&new_title)
+					//Check if the title provided already exists
+					for _, v := range titles {
+						if new_title == v {
+							fmt.Println("Title already exists")
+							os.Exit(0)
+						}
+					}
 					fmt.Println("Enter a description:")
 					util.Scanner(&new_description)
-					//Setting the status active as a default for new entries
+					//Setting the status "Active" as a default for new entries
 					db.Update(func(tx *buntdb.Tx) error {
-						tx.Set(new_title, fmt.Sprintf(`{"description" : "%s", "status": "Active", "category": "%s"}`, new_description, cCtx.String("c")), nil)
+						tx.Set(fmt.Sprintf("%d", new_key), fmt.Sprintf(
+							`{"id": "%s", "title": "%s", "description" : "%s", "status": "Active", "category": "%s"}`,
+							fmt.Sprintf("%d", new_key), new_title, new_description, cCtx.String("c")), nil)
 						return nil
 					})
 					defer db.Close()
@@ -58,26 +86,43 @@ func main() {
 
 			{
 				Name:    "delete",
-				Aliases: []string{"d"},
-				Usage:   "delete an entry from the list",
+				Aliases: []string{"del"},
+				Usage:   "Delete an entry from the list",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:    "title",
-						Aliases: []string{"t"},
-						Value:   "",
-						Usage:   "Enter the title of the entry to be delete",
+						Name:  "id",
+						Value: "",
+						Usage: "Enter the id of the entry to be delete",
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					if cCtx.String("t") == "" {
+					entries := []Entry{}
+					db.View(func(tx *buntdb.Tx) error {
+						fetched_entry := Entry{}
+						tx.Ascend("", func(key, value string) bool {
+							if err := json.Unmarshal([]byte(value), &fetched_entry); err != nil {
+								panic(err)
+							}
+							entries = append(entries, fetched_entry)
+							return true
+						})
+						return nil
+					})
+					if cCtx.String("id") == "" {
 						fmt.Println("Please enter the title of the entry to be delete")
 					}
+					var del_key string
+					for _, v := range entries {
+						if cCtx.String("id") == v.Id {
+							del_key = v.Id
+						}
+					}
 					db.Update(func(tx *buntdb.Tx) error {
-						_, err := tx.Delete(cCtx.String("t"))
+						_, err := tx.Delete(del_key)
 						if err != nil {
 							fmt.Println(err)
 						} else {
-							fmt.Printf("Entry with title \"%s\" has been succesfully deleted\n", cCtx.String("t"))
+							fmt.Printf("Entry with id \"%s\" has been succesfully deleted\n", del_key)
 						}
 						return nil
 					})
@@ -85,38 +130,49 @@ func main() {
 				},
 			},
 
-			// // 			{
-			// // 				Name:    "edit",
-			// // 				Aliases: []string{"e"},
-			// // 				Usage:   "edit the title, description and/or category",
-			// // 				Flags: []cli.Flag{
-			// // 					&cli.StringFlag{
-			// // 						Name:    "field",
-			// // 						Aliases: []string{"f"},
-			// // 						Value:   "all",
-			// // 						Usage:   "specify which field to edit",
-			// // 					},
-			// // 				},
-			// // 				Action: func(cCtx *cli.Context) error {
-			// // 					fmt.Println("edit")
-			// // 					switch cCtx.String("field") {
-			// // 					case "title":
-			// // 						fmt.Println("Title will be edited")
-			// // 					case "description":
-			// // 						fmt.Println("Description will be edited")
-			// // 					case "category":
-			// // 						fmt.Println("Category of entry will be edited")
-			// // 					default:
-			// // 						fmt.Println("error")
-			// // 					}
-			// // 					return nil
-			// // 				},
-			// // 			},
+			{
+				Name:    "edit",
+				Aliases: []string{"e"},
+				Usage:   "Edit the title, description and/or category",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "field",
+						Aliases: []string{"f"},
+						Value:   "all",
+						Usage:   "Specify which field to edit: title, description or category",
+					},
+				},
+				Action: func(cCtx *cli.Context) error {
+					switch cCtx.String("field") {
+					case "title":
+						var new_title string
+						fmt.Println("Enter the new title: ")
+						util.Scanner(&new_title)
+					case "description":
+						var new_desc string
+						fmt.Println("Enter the new description: ")
+						util.Scanner(&new_desc)
+					case "category":
+						var new_cat string
+						fmt.Println("Enter the new category: ")
+						util.Scanner(&new_cat)
+						if new_cat != "Work" && new_cat != "Fun" && new_cat != "Personal" {
+							fmt.Println("Please enter the correct")
+						}
+					case "all":
+						//var new_title, new_desc, new_cat string
+						fmt.Println("All")
+					default:
+						fmt.Println("Please enter a correct field to edit")
+					}
+					return nil
+				},
+			},
 
 			{
 				Name:    "list",
 				Aliases: []string{"ls"},
-				Usage:   "list all the entries",
+				Usage:   "List all the entries",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "status",
@@ -131,10 +187,9 @@ func main() {
 						Usage:   "Filter the returning list through the category given",
 					},
 					&cli.StringFlag{
-						Name:    "title",
-						Aliases: []string{"t"},
-						Value:   "all",
-						Usage:   "Return information about a specific title",
+						Name:  "id",
+						Value: "all",
+						Usage: "Return information about a specific entry",
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
@@ -145,14 +200,13 @@ func main() {
 							if err := json.Unmarshal([]byte(value), &fetched_entry); err != nil {
 								panic(err)
 							}
-							fetched_entry.Title = key
 							entries = append(entries, fetched_entry)
 							return true
 						})
 						return nil
 					})
 					//Checking if the user used a title flag
-					if cCtx.String("t") == "all" {
+					if cCtx.String("id") == "all" {
 						//Using 2 new variables to potentially filter twice through the list of entries, once for category flag and once for status flag
 						entries1 := []Entry{}
 						entries2 := []Entry{}
@@ -187,20 +241,20 @@ func main() {
 						}
 						fmt.Printf("Here is a list of your entries: \n")
 						for _, v := range entries2 {
-							fmt.Println(v.Title)
+							fmt.Printf("%s: %s\n", v.Id, v.Title)
 						}
 
 					} else {
-						title_found := false
+						key_found := false
 						for _, v := range entries {
-							if cCtx.String("t") == v.Title {
-								title_found = true
+							if cCtx.String("id") == v.Id {
+								key_found = true
 								fmt.Printf("Title: %s\nDescription: %s\nCategory: %s\nStatus: %s\n", v.Title, v.Description, v.Category, v.Status)
 								break
 							}
 						}
-						if title_found == false {
-							fmt.Println("Title was not found")
+						if key_found == false {
+							fmt.Printf("Entry with id \"%s\" was not found\n", cCtx.String("id"))
 						}
 					}
 					return nil
