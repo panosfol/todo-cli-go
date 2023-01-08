@@ -41,7 +41,8 @@ func main() {
 				},
 				Action: func(cCtx *cli.Context) error {
 					if cCtx.String("c") != "Fun" && cCtx.String("c") != "Personal" && cCtx.String("c") != "Work" && cCtx.String("c") != "Other" {
-						panic("Please enter a correct category for the entry")
+						fmt.Println("Please enter a correct category for the entry")
+						os.Exit(0)
 					}
 					//Using custom made key that auto increments according to the key of the last entry
 					new_key := 0
@@ -149,7 +150,12 @@ func main() {
 				},
 				Action: func(cCtx *cli.Context) error {
 					if cCtx.String("id") == "" {
-						fmt.Println("Please enter the title of the entry to be delete")
+						fmt.Println("Please enter the id of the entry to be delete")
+						os.Exit(0)
+					}
+					if cCtx.String("f") != "title" && cCtx.String("f") != "description" && cCtx.String("f") != "category" && cCtx.String("f") != "all" {
+						fmt.Println("Please enter a correct field to edit")
+						os.Exit(0)
 					}
 					entries := []Entry{}
 					db.View(func(tx *buntdb.Tx) error {
@@ -171,6 +177,12 @@ func main() {
 							edit_cat = v.Category
 							edit_status = v.Status
 						}
+					}
+					//If the category is empty it means that the id given hasn't been found
+					if edit_cat == "" {
+						fmt.Println("The id that was given doesnt exist")
+						os.Exit(0)
+
 					}
 					switch cCtx.String("f") {
 					case "title":
@@ -320,15 +332,28 @@ func main() {
 				},
 			},
 
-			// // 			{
-			// // 				Name:    "status",
-			// // 				Aliases: []string{"s"},
-			// // 				Usage:   "change the status of an entry",
-			// // 				Action: func(cCtx *cli.Context) error {
-			// // 					fmt.Println("status")
-			// // 					return nil
-			// // 				},
-			// // 			},
+			{
+				Name:    "status",
+				Aliases: []string{"s"},
+				Usage:   "Change the status of an entry",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:  "id",
+						Value: "",
+						Usage: "Enter the id of the entry",
+					},
+					&cli.StringFlag{
+						Name:    "update",
+						Aliases: []string{"u"},
+						Value:   "",
+						Usage:   "Enter the new status of the entry",
+					},
+				},
+				Action: func(cCtx *cli.Context) error {
+
+					return nil
+				},
+			},
 		},
 	}
 
