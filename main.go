@@ -177,14 +177,14 @@ func main() {
 						})
 						return nil
 					})
-					var edit_title, edit_desc, edit_cat, edit_status string
+					edit_entry := Entry{}
 					id_found := false
 					for _, v := range entries {
 						if cCtx.String("id") == v.Id {
-							edit_title = v.Title
-							edit_desc = v.Description
-							edit_cat = v.Category
-							edit_status = v.Status
+							edit_entry.Title = v.Title
+							edit_entry.Description = v.Description
+							edit_entry.Category = v.Category
+							edit_entry.Status = v.Status
 							id_found = true
 						}
 					}
@@ -197,12 +197,12 @@ func main() {
 						var new_title string
 						fmt.Println("Enter the new title: ")
 						util.Scanner(&new_title)
-						edit_title = new_title
+						edit_entry.Title = new_title
 					case "description":
 						var new_desc string
 						fmt.Println("Enter the new description: ")
 						util.Scanner(&new_desc)
-						edit_desc = new_desc
+						edit_entry.Description = new_desc
 					case "category":
 						var new_cat string
 						fmt.Println("Enter the new category: ")
@@ -213,7 +213,7 @@ func main() {
 								fmt.Println("Please enter the correct category(use only lowercase letters): ")
 								util.Scanner(&new_cat)
 							} else {
-								edit_cat = new_cat
+								edit_entry.Category = new_cat
 								break
 							}
 						}
@@ -221,10 +221,10 @@ func main() {
 						var new_title, new_desc, new_cat string
 						fmt.Println("Enter the new title: ")
 						util.Scanner(&new_title)
-						edit_title = new_title
+						edit_entry.Title = new_title
 						fmt.Println("Enter the new description: ")
 						util.Scanner(&new_desc)
-						edit_desc = new_desc
+						edit_entry.Description = new_desc
 						fmt.Println("Enter the new category: ")
 						util.Scanner(&new_cat)
 						for {
@@ -232,7 +232,7 @@ func main() {
 								fmt.Println("Please enter the correct category: ")
 								util.Scanner(&new_cat)
 							} else {
-								edit_cat = new_cat
+								edit_entry.Category = new_cat
 								break
 							}
 						}
@@ -242,7 +242,7 @@ func main() {
 					db.Update(func(tx *buntdb.Tx) error {
 						tx.Set(cCtx.String("id"), fmt.Sprintf(
 							`{"id": "%s", "title": "%s", "description" : "%s", "status": "%s", "category": "%s"}`,
-							cCtx.String("id"), edit_title, edit_desc, edit_status, edit_cat), nil)
+							cCtx.String("id"), edit_entry.Title, edit_entry.Description, edit_entry.Status, edit_entry.Category), nil)
 						return nil
 					})
 					defer db.Close()
