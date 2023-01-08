@@ -35,12 +35,12 @@ func main() {
 					&cli.StringFlag{
 						Name:    "category",
 						Aliases: []string{"c"},
-						Value:   "Other",
-						Usage:   "Enter a category of the entry: Fun, Work or Personal",
+						Value:   "other",
+						Usage:   "Enter a category of the entry: fun, work or personal",
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					if cCtx.String("c") != "Fun" && cCtx.String("c") != "Personal" && cCtx.String("c") != "Work" && cCtx.String("c") != "Other" {
+					if cCtx.String("c") != "fun" && cCtx.String("c") != "personal" && cCtx.String("c") != "work" && cCtx.String("c") != "other" {
 						fmt.Println("Please enter a correct category for the entry")
 						os.Exit(0)
 					}
@@ -76,7 +76,7 @@ func main() {
 					//Setting the status "Active" as a default for new entries
 					db.Update(func(tx *buntdb.Tx) error {
 						tx.Set(fmt.Sprintf("%d", new_key), fmt.Sprintf(
-							`{"id": "%s", "title": "%s", "description" : "%s", "status": "Active", "category": "%s"}`,
+							`{"id": "%s", "title": "%s", "description" : "%s", "status": "active", "category": "%s"}`,
 							fmt.Sprintf("%d", new_key), new_title, new_description, cCtx.String("c")), nil)
 						return nil
 					})
@@ -127,6 +127,7 @@ func main() {
 						}
 						return nil
 					})
+					defer db.Close()
 					return nil
 				},
 			},
@@ -200,8 +201,8 @@ func main() {
 						fmt.Println("Enter the new category: ")
 						util.Scanner(&new_cat)
 						for {
-							if new_cat != "Work" && new_cat != "Fun" && new_cat != "Personal" {
-								fmt.Println("Please enter the correct category: ")
+							if new_cat != "work" && new_cat != "fun" && new_cat != "personal" {
+								fmt.Println("Please enter the correct category(use only lowercase letters): ")
 								util.Scanner(&new_cat)
 							} else {
 								edit_cat = new_cat
@@ -219,7 +220,7 @@ func main() {
 						fmt.Println("Enter the new category: ")
 						util.Scanner(&new_cat)
 						for {
-							if new_cat != "Work" && new_cat != "Fun" && new_cat != "Personal" {
+							if new_cat != "work" && new_cat != "fun" && new_cat != "personal" {
 								fmt.Println("Please enter the correct category: ")
 								util.Scanner(&new_cat)
 							} else {
@@ -236,6 +237,7 @@ func main() {
 							cCtx.String("id"), edit_title, edit_desc, edit_status, edit_cat), nil)
 						return nil
 					})
+					defer db.Close()
 					return nil
 				},
 			},
@@ -249,13 +251,13 @@ func main() {
 						Name:    "status",
 						Aliases: []string{"s"},
 						Value:   "all",
-						Usage:   "Filter the returning list through the status given",
+						Usage:   "Filter the returning list through the status given: abandoned, ,active ,done",
 					},
 					&cli.StringFlag{
 						Name:    "category",
 						Aliases: []string{"c"},
 						Value:   "all",
-						Usage:   "Filter the returning list through the category given",
+						Usage:   "Filter the returning list through the category given: fun, work, personal",
 					},
 					&cli.StringFlag{
 						Name:  "id",
@@ -282,14 +284,14 @@ func main() {
 						entries1 := []Entry{}
 						entries2 := []Entry{}
 						//Checking if the user put the correct input
-						if cCtx.String("c") != "Fun" && cCtx.String("c") != "Work" && cCtx.String("c") != "all" && cCtx.String("c") != "Personal" {
+						if cCtx.String("c") != "fun" && cCtx.String("c") != "work" && cCtx.String("c") != "all" && cCtx.String("c") != "personal" {
 							panic("Wrong category parameter given")
 						}
-						if cCtx.String("s") != "Active" && cCtx.String("s") != "Done" && cCtx.String("s") != "all" && cCtx.String("s") != "Abandoned" {
+						if cCtx.String("s") != "active" && cCtx.String("s") != "done" && cCtx.String("s") != "all" && cCtx.String("s") != "abandoned" {
 							panic("Wrong status parameter given")
 						}
 						//Filtering through all the entries using the category flag
-						if cCtx.String("c") == "Fun" || cCtx.String("c") == "Personal" || cCtx.String("c") == "Work" {
+						if cCtx.String("c") == "fun" || cCtx.String("c") == "personal" || cCtx.String("c") == "work" {
 							for _, v := range entries {
 								if v.Category == cCtx.String("c") {
 									entries1 = append(entries1, v)
@@ -301,7 +303,7 @@ func main() {
 
 						}
 						//Filtering through all the entries using the status flag
-						if cCtx.String("s") == "Abandoned" || cCtx.String("s") == "Done" || cCtx.String("s") == "Active" {
+						if cCtx.String("s") == "abandoned" || cCtx.String("s") == "done" || cCtx.String("s") == "active" {
 							for _, v := range entries1 {
 								if v.Status == cCtx.String("s") {
 									entries2 = append(entries2, v)
@@ -333,9 +335,9 @@ func main() {
 			},
 
 			{
-				Name:    "status",
-				Aliases: []string{"s"},
-				Usage:   "Change the status of an entry",
+				Name:    "update",
+				Aliases: []string{"u"},
+				Usage:   "Update the status of an entry",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:  "id",
@@ -343,14 +345,55 @@ func main() {
 						Usage: "Enter the id of the entry",
 					},
 					&cli.StringFlag{
-						Name:    "update",
-						Aliases: []string{"u"},
+						Name:    "status",
+						Aliases: []string{"s"},
 						Value:   "",
-						Usage:   "Enter the new status of the entry",
+						Usage:   "Enter the new status of the entry: done, active, abandoned",
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-
+					if cCtx.String("id") == "" {
+						fmt.Println("Please enter the id of the entry")
+						os.Exit(0)
+					}
+					if cCtx.String("s") != "done" && cCtx.String("s") != "abandoned" && cCtx.String("s") != "active" {
+						fmt.Println("Please enter a correct status")
+						os.Exit(0)
+					}
+					entries := []Entry{}
+					db.View(func(tx *buntdb.Tx) error {
+						fetched_entry := Entry{}
+						tx.Ascend("", func(key, value string) bool {
+							if err := json.Unmarshal([]byte(value), &fetched_entry); err != nil {
+								panic(err)
+							}
+							entries = append(entries, fetched_entry)
+							return true
+						})
+						return nil
+					})
+					id_found := false
+					var entry_title, entry_desc, entry_cat string
+					for _, v := range entries {
+						if cCtx.String("id") == v.Id {
+							entry_title = v.Title
+							entry_desc = v.Description
+							entry_cat = v.Category
+							id_found = true
+							break
+						}
+					}
+					if id_found == false {
+						fmt.Printf("Entry with id \"%s\" was not found\n", cCtx.String("id"))
+						os.Exit(0)
+					}
+					db.Update(func(tx *buntdb.Tx) error {
+						tx.Set(cCtx.String("id"), fmt.Sprintf(
+							`{"id": "%s", "title": "%s", "description" : "%s", "status": "%s", "category": "%s"}`,
+							cCtx.String("id"), entry_title, entry_desc, cCtx.String("s"), entry_cat), nil)
+						return nil
+					})
+					defer db.Close()
 					return nil
 				},
 			},
