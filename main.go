@@ -96,6 +96,9 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
+					if cCtx.String("id") == "" {
+						fmt.Println("Please enter the title of the entry to be delete")
+					}
 					entries := []Entry{}
 					db.View(func(tx *buntdb.Tx) error {
 						fetched_entry := Entry{}
@@ -108,9 +111,6 @@ func main() {
 						})
 						return nil
 					})
-					if cCtx.String("id") == "" {
-						fmt.Println("Please enter the title of the entry to be delete")
-					}
 					var del_key string
 					for _, v := range entries {
 						if cCtx.String("id") == v.Id {
@@ -136,6 +136,11 @@ func main() {
 				Usage:   "Edit the title, description and/or category",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
+						Name:  "id",
+						Value: "",
+						Usage: "Id of the entry to be deleted",
+					},
+					&cli.StringFlag{
 						Name:    "field",
 						Aliases: []string{"f"},
 						Value:   "all",
@@ -143,28 +148,82 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					switch cCtx.String("field") {
+					if cCtx.String("id") == "" {
+						fmt.Println("Please enter the title of the entry to be delete")
+					}
+					entries := []Entry{}
+					db.View(func(tx *buntdb.Tx) error {
+						fetched_entry := Entry{}
+						tx.Ascend("", func(key, value string) bool {
+							if err := json.Unmarshal([]byte(value), &fetched_entry); err != nil {
+								panic(err)
+							}
+							entries = append(entries, fetched_entry)
+							return true
+						})
+						return nil
+					})
+					var edit_title, edit_desc, edit_cat, edit_status string
+					for _, v := range entries {
+						if cCtx.String("id") == v.Id {
+							edit_title = v.Title
+							edit_desc = v.Description
+							edit_cat = v.Category
+							edit_status = v.Status
+						}
+					}
+					switch cCtx.String("f") {
 					case "title":
 						var new_title string
 						fmt.Println("Enter the new title: ")
 						util.Scanner(&new_title)
+						edit_title = new_title
 					case "description":
 						var new_desc string
 						fmt.Println("Enter the new description: ")
 						util.Scanner(&new_desc)
+						edit_desc = new_desc
 					case "category":
 						var new_cat string
 						fmt.Println("Enter the new category: ")
 						util.Scanner(&new_cat)
-						if new_cat != "Work" && new_cat != "Fun" && new_cat != "Personal" {
-							fmt.Println("Please enter the correct")
+						for {
+							if new_cat != "Work" && new_cat != "Fun" && new_cat != "Personal" {
+								fmt.Println("Please enter the correct category: ")
+								util.Scanner(&new_cat)
+							} else {
+								edit_cat = new_cat
+								break
+							}
 						}
 					case "all":
-						//var new_title, new_desc, new_cat string
-						fmt.Println("All")
+						var new_title, new_desc, new_cat string
+						fmt.Println("Enter the new title: ")
+						util.Scanner(&new_title)
+						edit_title = new_title
+						fmt.Println("Enter the new description: ")
+						util.Scanner(&new_desc)
+						edit_desc = new_desc
+						fmt.Println("Enter the new category: ")
+						util.Scanner(&new_cat)
+						for {
+							if new_cat != "Work" && new_cat != "Fun" && new_cat != "Personal" {
+								fmt.Println("Please enter the correct category: ")
+								util.Scanner(&new_cat)
+							} else {
+								edit_cat = new_cat
+								break
+							}
+						}
 					default:
 						fmt.Println("Please enter a correct field to edit")
 					}
+					db.Update(func(tx *buntdb.Tx) error {
+						tx.Set(cCtx.String("id"), fmt.Sprintf(
+							`{"id": "%s", "title": "%s", "description" : "%s", "status": "%s", "category": "%s"}`,
+							cCtx.String("id"), edit_title, edit_desc, edit_status, edit_cat), nil)
+						return nil
+					})
 					return nil
 				},
 			},
