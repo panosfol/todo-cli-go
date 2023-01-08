@@ -104,7 +104,7 @@ func main() {
 						os.Exit(0)
 					}
 					//Fetching all the entries to match the id given with the correct entry
-					entries := []Entry{}
+					var entries []Entry
 					db.View(func(tx *buntdb.Tx) error {
 						fetched_entry := Entry{}
 						tx.Ascend("", func(key, value string) bool {
@@ -165,7 +165,7 @@ func main() {
 						os.Exit(0)
 					}
 					//Fetching all the entries to match the id given with the entry to be edited
-					entries := []Entry{}
+					var entries []Entry
 					db.View(func(tx *buntdb.Tx) error {
 						fetched_entry := Entry{}
 						tx.Ascend("", func(key, value string) bool {
@@ -177,7 +177,7 @@ func main() {
 						})
 						return nil
 					})
-					edit_entry := Entry{}
+					var edit_entry Entry
 					id_found := false
 					for _, v := range entries {
 						if cCtx.String("id") == v.Id {
@@ -274,7 +274,7 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
-					entries := []Entry{}
+					var entries []Entry
 					db.View(func(tx *buntdb.Tx) error {
 						fetched_entry := Entry{}
 						tx.Ascend("", func(key, value string) bool {
@@ -289,8 +289,8 @@ func main() {
 					//Checking if the user used a title flag
 					if cCtx.String("id") == "all" {
 						//Using 2 new variables to potentially filter twice through the list of entries, once for category flag and once for status flag
-						entries1 := []Entry{}
-						entries2 := []Entry{}
+						var entries1 []Entry
+						var entries2 []Entry
 						//Checking if the user put the correct input
 						if cCtx.String("c") != "fun" && cCtx.String("c") != "work" && cCtx.String("c") != "all" && cCtx.String("c") != "personal" {
 							panic("Wrong category parameter given")
@@ -371,7 +371,7 @@ func main() {
 						os.Exit(0)
 					}
 					//Fetching all the entries to match the id given with the entry to be updated
-					entries := []Entry{}
+					var entries []Entry
 					db.View(func(tx *buntdb.Tx) error {
 						fetched_entry := Entry{}
 						tx.Ascend("", func(key, value string) bool {
