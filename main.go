@@ -170,19 +170,19 @@ func main() {
 						return nil
 					})
 					var edit_title, edit_desc, edit_cat, edit_status string
+					id_found := false
 					for _, v := range entries {
 						if cCtx.String("id") == v.Id {
 							edit_title = v.Title
 							edit_desc = v.Description
 							edit_cat = v.Category
 							edit_status = v.Status
+							id_found = true
 						}
 					}
-					//If the category is empty it means that the id given hasn't been found
-					if edit_cat == "" {
+					if id_found == false {
 						fmt.Println("The id that was given doesnt exist")
 						os.Exit(0)
-
 					}
 					switch cCtx.String("f") {
 					case "title":
@@ -316,15 +316,15 @@ func main() {
 						}
 
 					} else {
-						key_found := false
+						id_found := false
 						for _, v := range entries {
 							if cCtx.String("id") == v.Id {
-								key_found = true
+								id_found = true
 								fmt.Printf("Title: %s\nDescription: %s\nCategory: %s\nStatus: %s\n", v.Title, v.Description, v.Category, v.Status)
 								break
 							}
 						}
-						if key_found == false {
+						if id_found == false {
 							fmt.Printf("Entry with id \"%s\" was not found\n", cCtx.String("id"))
 						}
 					}
