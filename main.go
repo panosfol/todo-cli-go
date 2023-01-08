@@ -40,6 +40,7 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
+					//Checking if the user input is correct
 					if cCtx.String("c") != "fun" && cCtx.String("c") != "personal" && cCtx.String("c") != "work" && cCtx.String("c") != "other" {
 						fmt.Println("Please enter a correct category for the entry")
 						os.Exit(0)
@@ -73,7 +74,7 @@ func main() {
 					}
 					fmt.Println("Enter a description:")
 					util.Scanner(&new_description)
-					//Setting the status "Active" as a default for new entries
+					//Setting the status "active" as a default for new entries
 					db.Update(func(tx *buntdb.Tx) error {
 						tx.Set(fmt.Sprintf("%d", new_key), fmt.Sprintf(
 							`{"id": "%s", "title": "%s", "description" : "%s", "status": "active", "category": "%s"}`,
@@ -97,9 +98,12 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
+					//If the id flag is empty the process should terminate
 					if cCtx.String("id") == "" {
 						fmt.Println("Please enter the title of the entry to be delete")
+						os.Exit(0)
 					}
+					//Fetching all the entries to match the id given with the correct entry
 					entries := []Entry{}
 					db.View(func(tx *buntdb.Tx) error {
 						fetched_entry := Entry{}
@@ -121,7 +125,7 @@ func main() {
 					db.Update(func(tx *buntdb.Tx) error {
 						_, err := tx.Delete(del_key)
 						if err != nil {
-							fmt.Println(err)
+							fmt.Printf("Entry with id \"%s\" was not found\n", cCtx.String("id"))
 						} else {
 							fmt.Printf("Entry with id \"%s\" has been succesfully deleted\n", del_key)
 						}
@@ -150,14 +154,17 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
+					//If the id flag is empty the process should terminate
 					if cCtx.String("id") == "" {
 						fmt.Println("Please enter the id of the entry to be delete")
 						os.Exit(0)
 					}
+					//If the field flag was not correctly given the process should terminate
 					if cCtx.String("f") != "title" && cCtx.String("f") != "description" && cCtx.String("f") != "category" && cCtx.String("f") != "all" {
 						fmt.Println("Please enter a correct field to edit")
 						os.Exit(0)
 					}
+					//Fetching all the entries to match the id given with the entry to be edited
 					entries := []Entry{}
 					db.View(func(tx *buntdb.Tx) error {
 						fetched_entry := Entry{}
@@ -182,7 +189,7 @@ func main() {
 						}
 					}
 					if id_found == false {
-						fmt.Println("The id that was given doesnt exist")
+						fmt.Println("The id given doesn't exist")
 						os.Exit(0)
 					}
 					switch cCtx.String("f") {
@@ -200,6 +207,7 @@ func main() {
 						var new_cat string
 						fmt.Println("Enter the new category: ")
 						util.Scanner(&new_cat)
+						//Using an infinite loop to ensure the user input is correct
 						for {
 							if new_cat != "work" && new_cat != "fun" && new_cat != "personal" {
 								fmt.Println("Please enter the correct category(use only lowercase letters): ")
@@ -251,7 +259,7 @@ func main() {
 						Name:    "status",
 						Aliases: []string{"s"},
 						Value:   "all",
-						Usage:   "Filter the returning list through the status given: abandoned, ,active ,done",
+						Usage:   "Filter the returning list through the status given: abandoned, active, done",
 					},
 					&cli.StringFlag{
 						Name:    "category",
@@ -352,14 +360,17 @@ func main() {
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
+					//If the id is empty the process should terminate
 					if cCtx.String("id") == "" {
 						fmt.Println("Please enter the id of the entry")
 						os.Exit(0)
 					}
+					//If the status given is empty or not correct the process should terminate
 					if cCtx.String("s") != "done" && cCtx.String("s") != "abandoned" && cCtx.String("s") != "active" {
 						fmt.Println("Please enter a correct status")
 						os.Exit(0)
 					}
+					//Fetching all the entries to match the id given with the entry to be updated
 					entries := []Entry{}
 					db.View(func(tx *buntdb.Tx) error {
 						fetched_entry := Entry{}
@@ -383,6 +394,7 @@ func main() {
 							break
 						}
 					}
+					//If the id given was not found the process should terminate
 					if id_found == false {
 						fmt.Printf("Entry with id \"%s\" was not found\n", cCtx.String("id"))
 						os.Exit(0)
