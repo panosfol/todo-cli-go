@@ -26,30 +26,30 @@ go build
 
 #### New
 ```sh
-todo new || n
-todo -c fun || personal || work
+todo {new | n}
+todo -c {fun | personal | work}
 ```
 #### Delete
 ```sh
-todo delete || delete
+todo {delete | delete}
 todo delete -id 1
 ```
 #### Edit
 ```sh
-todo edit || e
-todo edit -id 1 -f title || category || description
+todo {edit | e}
+todo edit -id 1 -f {title | category | description}
 ```
 #### Read entries
 ```sh
-todo list || ls
-todo list -s abandoned || active || done
-todo list -c work || fun || personal
+todo {list | ls}
+todo list -s {abandoned | active | done}
+todo list -c {work | fun | personal}
 todo list -id 1
 ```
 #### Update status of entry
 ```sh
-todo update || u
-todo update -id 1 -s done || active || abandoned
+todo {update | u}
+todo update -id 1 -s {done | active | abandoned}
 ```
 
 
